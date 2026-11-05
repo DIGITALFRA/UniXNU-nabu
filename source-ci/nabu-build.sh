@@ -79,6 +79,17 @@ echo "== prepare_source: $PROFILE"
 "$py" "$DEVICE/source-ci/prepare_source.py" --upstream "$UPSTREAM" --device "$STAGED" \
     --profile "$PROFILE" --report "$WORK/source-prepare.json" $EXTRA
 
+python3 - "$UPSTREAM/scripts/build-xnu-4k-baseline.sh" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+lines = path.read_text().splitlines(keepends=True)
+matches = [i for i, line in enumerate(lines) if line.startswith('for PATCH in ')]
+if len(matches) != 1:
+    raise SystemExit(f"Expected one XNU patch loop, found {len(matches)}")
+lines.insert(matches[0] + 1, '    echo "APPLY_XNU_PATCH=$PATCH" >&2\n')
+path.write_text(''.join(lines))
+PY
 echo "== unixnu defconfig + build kernel"
 (cd "$UPSTREAM" && ./unixnu defconfig "$PROFILE" && ./unixnu build kernel)
 
