@@ -1,0 +1,74 @@
+name: nabu macOS source build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compile nabu read-only UFS kernel
+    runs-on: macos-26
+    timeout-minutes: 360
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - name: Check out the nabu device repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out the pinned UniXNU source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: UniXNU/UniXNU
+          ref: 245aca1a9ec5b730b1cad80fade295800d2981f1
+          path: upstream
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Check Xcode and install build tools
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          brew install llvm lld mtools dtc
+          if ! command -v unifdef >/dev/null 2>&1; then
+            brew install unifdef
+            echo "$(brew --prefix unifdef)/bin" >> "$GITHUB_PATH"
+          fi
+
+      - name: Download and validate the IPSW inputs
+        env:
+          IPSW_URL: https://updates.cdn-apple.com/2024FallFCS/fullrestores/062-78914/A081E8C4-D00A-4FC5-A650-A42EA1726236/iPad_10.2_17.7_21H16_Restore.ipsw
+        run: |
+          case "$IPSW_URL" in
+            https://updates.cdn-apple.com/*/fullrestores/*) ;;
+            *) echo "IPSW URL must be from Apple's restore CDN" >&2; exit 2 ;;
+          esac
+          curl --silent --show-error --location --fail --retry 3 "$IPSW_URL" -o "$RUNNER_TEMP/nabu-restore.ipsw"
+          python3 source-ci/prepare_ipsw_input.py --ipsw "$RUNNER_TEMP/nabu-restore.ipsw" --output "$RUNNER_TEMP/ipsw-21h16-small.zip"
+          rm -f "$RUNNER_TEMP/nabu-restore.ipsw"
+
+      - name: Build the read-only UFS kernel
+        run: |
+          export UNIXNU_IPSW="$RUNNER_TEMP/ipsw-21h16-small.zip"
+          export UNIXNU_DEVICE="$RUNNER_TEMP/nabu-build/device"
+          export NABU_RUN_ID="$GITHUB_RUN_ID"
+          source-ci/nabu-build.sh --upstream "$GITHUB_WORKSPACE/upstream" --profile nabu_ufs_readonly_defconfig --work "$RUNNER_TEMP/nabu-build"
+
+      - name: Report result
+        if: always()
+        run: |
+          {
+            echo "## nabu source build"
+            echo
+            echo "Kernel profile: nabu_ufs_readonly_defconfig"
+            echo "This is a compile-only run; the tablet was not touched."
+            echo "No binary artifacts are uploaded; the runner is discarded after the build."
+          } >> "$GITHUB_STEP_SUMMARY"
