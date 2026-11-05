@@ -91,15 +91,9 @@ MANAGED_RT_NORMAL = {'name': 'nabu-managed-rt-normal.patch',
 
 SECOND_STATIC_TRUST_CACHE_PATCH = '''--- a/config/MASTER.arm64
 +++ b/config/MASTER.arm64
-@@ -72,7 +72,7 @@
- #  VM_DEV =         [ VM_BASE dynamic_codesigning pgzalloc]
- #  VM_DEBUG =       [ VM_BASE dynamic_codesigning pgzalloc]
- #  VM_KASAN =       [ VM_BASE dynamic_codesigning kernel_tagging kernel_tbi config_kasan config_ubsan config_kcov config_ksancov ]
+@@ -72,1 +72,1 @@
 -#  SECURITY_BASE =    [ config_macf kernel_integrity config_secure_bsd_root ]
 +#  SECURITY_BASE =    [ config_macf kernel_integrity config_secure_bsd_root second_static_trust_cache ]
- #  SECURITY_RELEASE = [ SECURITY_BASE ]
- #  SECURITY_DEV =     [ SECURITY_BASE config_setuid config_kas_info ]
- #  SECURITY_DEBUG =   [ SECURITY_BASE config_setuid config_kas_info ]
 '''
 
 # Native console only: no BootProgress archives or system policy changes.
