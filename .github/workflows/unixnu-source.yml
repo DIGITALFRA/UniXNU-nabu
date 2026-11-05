@@ -1,3 +1,4 @@
+
 name: nabu macOS source build
 
 on:
@@ -60,7 +61,7 @@ jobs:
           export UNIXNU_IPSW="$RUNNER_TEMP/ipsw-21h16-small.zip"
           export UNIXNU_DEVICE="$RUNNER_TEMP/nabu-build/device"
           export NABU_RUN_ID="$GITHUB_RUN_ID"
-          source-ci/nabu-build.sh --upstream "$GITHUB_WORKSPACE/upstream" --profile nabu_ufs_readonly_defconfig --work "$RUNNER_TEMP/nabu-build"
+          bash source-ci/nabu-build.sh --upstream "$GITHUB_WORKSPACE/upstream" --profile nabu_ufs_readonly_defconfig --work "$RUNNER_TEMP/nabu-build"
 
       - name: Report result
         if: always()
